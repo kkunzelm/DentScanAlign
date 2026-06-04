@@ -14,6 +14,12 @@
 - Added persistent paths via QSettings (survives rebuilds)
 - Preview is now auto-enabled after computing transform
 - Camera resets when toggling preview (transformed mesh centered at origin)
+- **Auto-compute**: Transform computed automatically when 3rd point clicked (removed manual button)
+- **Reset button**: Renamed "Clear All" to "Reset" for clarity
+- **Simplified labels**: Changed "Midline, Right, Left" to "Point 1 (midline), 2, 3 (clockwise)"
+- **Fixed Z-axis orientation**: Uses clockwise point convention for consistent up direction
+- **X-axis alignment**: X-axis now parallel to line between points 2 and 3
+- **Curvature coloring**: Mesh displays with convex=orange, concave=blue coloring to distinguish top from bottom
 
 ## What Was Implemented
 
@@ -150,12 +156,15 @@ make -j$(nproc)
 
 ### Design Decisions
 
-- **Deferred region growing**: Regions are NOT grown on each click (too slow). Instead, all 3 regions are grown when "Compute Transform" is pressed. This makes clicking instant.
+- **Deferred region growing**: Regions are NOT grown on each click (too slow). Instead, all 3 regions are grown automatically when 3rd point is clicked. This makes clicking instant.
 - **Small landmark regions**: `maxGeodesicMm = 2.0` creates ~2mm radius regions around each seed point
 - **Sphere visualization**: Yellow spheres (0.6mm radius, RGB 1.0/0.85/0.0) matching DentScanCompare style
 - **Persistent paths**: Input/output directories saved via QSettings (`~/.config/DentScan/DentScanAlign.conf`), survive rebuilds
 - **High-DPI support**: Point picking uses `devicePixelRatioF()` for correct coordinate conversion
 - **Auto-preview**: After computing transform, preview is automatically enabled and camera resets to show normalized mesh
+- **Clockwise point convention**: User clicks 3 points clockwise from midline when viewing from occlusal; this determines Z-axis direction
+- **Axis alignment**: X-axis is parallel to line between points 2-3; Y-axis perpendicular pointing toward point 1
+- **Curvature coloring**: Mean curvature visualization (convex=orange, concave=blue) helps distinguish occlusal from apical view
 
 ### Known Limitations
 

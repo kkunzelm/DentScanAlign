@@ -13,6 +13,93 @@
 #include <vtkCellArray.h>
 #include <vtkFloatArray.h>
 #include <vtkPointData.h>
+#include <vtkUnsignedCharArray.h>
+
+#include <cmath>
+
+namespace {
+
+// Compute mean curvature per vertex using Laplacian approximation
+std::vector<double> computeMeanCurvature(const SurfaceMesh& mesh)
+{
+    std::vector<double> curvature(mesh.num_vertices(), 0.0);
+
+    // For each vertex, compute mean curvature using umbrella operator
+    for (auto v : mesh.vertices()) {
+        const Point3& p = mesh.point(v);
+        Eigen::Vector3d pos(CGAL::to_double(p.x()),
+                            CGAL::to_double(p.y()),
+                            CGAL::to_double(p.z()));
+
+        // Compute centroid of neighbors (umbrella operator)
+        Eigen::Vector3d neighborSum = Eigen::Vector3d::Zero();
+        int neighborCount = 0;
+
+        for (auto h : mesh.halfedges_around_target(mesh.halfedge(v))) {
+            auto vn = mesh.source(h);
+            const Point3& pn = mesh.point(vn);
+            neighborSum += Eigen::Vector3d(CGAL::to_double(pn.x()),
+                                           CGAL::to_double(pn.y()),
+                                           CGAL::to_double(pn.z()));
+            ++neighborCount;
+        }
+
+        if (neighborCount > 0) {
+            Eigen::Vector3d centroid = neighborSum / neighborCount;
+            Eigen::Vector3d laplacian = centroid - pos;
+
+            // Compute vertex normal as average of incident face normals
+            Eigen::Vector3d normal = Eigen::Vector3d::Zero();
+            for (auto h : mesh.halfedges_around_target(mesh.halfedge(v))) {
+                if (!mesh.is_border(h)) {
+                    auto f = mesh.face(h);
+                    auto fh = mesh.halfedge(f);
+                    std::array<Eigen::Vector3d, 3> fv;
+                    int i = 0;
+                    for (auto fvd : mesh.vertices_around_face(fh)) {
+                        const Point3& fp = mesh.point(fvd);
+                        fv[i++] = Eigen::Vector3d(CGAL::to_double(fp.x()),
+                                                  CGAL::to_double(fp.y()),
+                                                  CGAL::to_double(fp.z()));
+                    }
+                    Eigen::Vector3d fn = (fv[1] - fv[0]).cross(fv[2] - fv[0]);
+                    double len = fn.norm();
+                    if (len > 1e-12) normal += fn / len;
+                }
+            }
+            double nlen = normal.norm();
+            if (nlen > 1e-12) {
+                normal /= nlen;
+                // Signed mean curvature: positive = convex, negative = concave
+                curvature[v.idx()] = laplacian.dot(normal);
+            }
+        }
+    }
+
+    return curvature;
+}
+
+// Map curvature to RGB color: convex (positive) = orange/warm, concave (negative) = blue/cool
+void curvatureToColor(double curv, double scale, unsigned char& r, unsigned char& g, unsigned char& b)
+{
+    // Normalize curvature to [-1, 1] range
+    double t = std::clamp(curv / scale, -1.0, 1.0);
+
+    if (t > 0) {
+        // Convex: white to orange
+        r = 255;
+        g = static_cast<unsigned char>(255 * (1.0 - t * 0.6));
+        b = static_cast<unsigned char>(255 * (1.0 - t));
+    } else {
+        // Concave: white to blue
+        double s = -t;
+        r = static_cast<unsigned char>(255 * (1.0 - s));
+        g = static_cast<unsigned char>(255 * (1.0 - s * 0.5));
+        b = 255;
+    }
+}
+
+} // anonymous namespace
 
 MeshViewWidget::MeshViewWidget(QWidget* parent)
     : QWidget(parent)
@@ -157,6 +244,99 @@ void MeshViewWidget::setMeshTransformed(const std::shared_ptr<ScanData>& scan,
 
     auto pd = cgalToVTKTransformed(scan->mesh, transform);
     m_polyData->ShallowCopy(pd);
+
+    if (resetCam)
+        resetCamera();
+
+    m_renderWindow->Render();
+}
+
+void MeshViewWidget::setMeshWithCurvature(const std::shared_ptr<ScanData>& scan, bool resetCam)
+{
+    clearHighlights();
+    m_currentScan = scan;
+
+    if (!scan || scan->mesh.is_empty()) {
+        m_polyData->Reset();
+        m_renderWindow->Render();
+        return;
+    }
+
+    auto pd = cgalToVTK(scan->mesh);
+
+    // Compute curvature and add colors
+    auto curvature = computeMeanCurvature(scan->mesh);
+
+    // Find curvature scale (use 90th percentile for robustness)
+    std::vector<double> absCurv;
+    absCurv.reserve(curvature.size());
+    for (double c : curvature) absCurv.push_back(std::abs(c));
+    std::sort(absCurv.begin(), absCurv.end());
+    double scale = absCurv.empty() ? 1.0 : absCurv[absCurv.size() * 9 / 10];
+    if (scale < 0.001) scale = 0.001;
+
+    auto colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colors->SetName("CurvatureColor");
+    colors->SetNumberOfComponents(3);
+    colors->SetNumberOfTuples(static_cast<vtkIdType>(scan->mesh.num_vertices()));
+
+    for (auto v : scan->mesh.vertices()) {
+        unsigned char r, g, b;
+        curvatureToColor(curvature[v.idx()], scale, r, g, b);
+        colors->SetTuple3(static_cast<vtkIdType>(v.idx()), r, g, b);
+    }
+
+    pd->GetPointData()->SetScalars(colors);
+    m_polyData->DeepCopy(pd);
+    m_mapper->SetColorModeToDirectScalars();
+    m_mapper->ScalarVisibilityOn();
+
+    if (resetCam)
+        resetCamera();
+
+    m_renderWindow->Render();
+}
+
+void MeshViewWidget::setMeshTransformedWithCurvature(const std::shared_ptr<ScanData>& scan,
+                                                      const Eigen::Matrix4d& transform,
+                                                      bool resetCam)
+{
+    clearHighlights();
+
+    if (!scan || scan->mesh.is_empty()) {
+        m_polyData->Reset();
+        m_renderWindow->Render();
+        return;
+    }
+
+    auto pd = cgalToVTKTransformed(scan->mesh, transform);
+
+    // Compute curvature and add colors
+    auto curvature = computeMeanCurvature(scan->mesh);
+
+    // Find curvature scale
+    std::vector<double> absCurv;
+    absCurv.reserve(curvature.size());
+    for (double c : curvature) absCurv.push_back(std::abs(c));
+    std::sort(absCurv.begin(), absCurv.end());
+    double scale = absCurv.empty() ? 1.0 : absCurv[absCurv.size() * 9 / 10];
+    if (scale < 0.001) scale = 0.001;
+
+    auto colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colors->SetName("CurvatureColor");
+    colors->SetNumberOfComponents(3);
+    colors->SetNumberOfTuples(static_cast<vtkIdType>(scan->mesh.num_vertices()));
+
+    for (auto v : scan->mesh.vertices()) {
+        unsigned char r, g, b;
+        curvatureToColor(curvature[v.idx()], scale, r, g, b);
+        colors->SetTuple3(static_cast<vtkIdType>(v.idx()), r, g, b);
+    }
+
+    pd->GetPointData()->SetScalars(colors);
+    m_polyData->DeepCopy(pd);
+    m_mapper->SetColorModeToDirectScalars();
+    m_mapper->ScalarVisibilityOn();
 
     if (resetCam)
         resetCamera();

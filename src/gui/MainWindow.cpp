@@ -103,7 +103,6 @@ void MainWindow::setupUI()
 
     connect(m_alignWidget, &AlignmentWidget::undoClicked, this, &MainWindow::onUndoLandmark);
     connect(m_alignWidget, &AlignmentWidget::clearClicked, this, &MainWindow::onClearLandmarks);
-    connect(m_alignWidget, &AlignmentWidget::computeClicked, this, &MainWindow::onComputeTransform);
     connect(m_alignWidget, &AlignmentWidget::previewToggled, this, &MainWindow::onPreviewToggled);
     connect(m_alignWidget, &AlignmentWidget::skipClicked, this, &MainWindow::onSkipScan);
     connect(m_alignWidget, &AlignmentWidget::saveClicked, this, &MainWindow::onSaveAndNext);
@@ -173,7 +172,6 @@ void MainWindow::loadNextScan()
     m_transformComputed = false;
 
     m_alignWidget->clearLandmarks();
-    m_alignWidget->setComputeEnabled(false);
     m_alignWidget->setSaveEnabled(false);
 
     std::string errorMsg;
@@ -193,7 +191,7 @@ void MainWindow::loadNextScan()
         return;
     }
 
-    m_meshView->setMesh(m_currentScan);
+    m_meshView->setMeshWithCurvature(m_currentScan);
     updateProgress();
     updateLandmarkStatus();
 }
@@ -212,17 +210,14 @@ void MainWindow::updateProgress()
 void MainWindow::updateLandmarkStatus()
 {
     const char* statusMsgs[4] = {
-        "Pick landmark 1 (midline)",
-        "Pick landmark 2 (right side)",
-        "Pick landmark 3 (left side)",
-        "All landmarks picked - compute transform"
+        "Click point 1 at midline (anterior)",
+        "Click point 2 (clockwise from point 1)",
+        "Click point 3 (clockwise from point 2)",
+        "All points picked - compute transform"
     };
 
     int idx = std::min(m_currentLandmarkIndex, 3);
     m_alignWidget->setStatus(statusMsgs[idx]);
-
-    bool allPicked = (m_currentLandmarkIndex >= 3);
-    m_alignWidget->setComputeEnabled(allPicked);
 }
 
 void MainWindow::onPointPicked(double x, double y, double z)
@@ -244,6 +239,11 @@ void MainWindow::onPointPicked(double x, double y, double z)
     m_meshView->showPickedPoints(pickedPoints);
 
     updateLandmarkStatus();
+
+    // Automatically compute transform when all 3 points are picked
+    if (m_currentLandmarkIndex >= 3) {
+        onComputeTransform();
+    }
 }
 
 void MainWindow::growRegion(int landmarkIndex)
@@ -284,7 +284,7 @@ void MainWindow::onUndoLandmark()
 
     // Restore original view if preview was on
     if (m_alignWidget->isPreviewChecked()) {
-        m_meshView->setMesh(m_currentScan, false);
+        m_meshView->setMeshWithCurvature(m_currentScan, false);
     }
 
     updateLandmarkStatus();
@@ -299,12 +299,11 @@ void MainWindow::onClearLandmarks()
     m_transformComputed = false;
 
     m_alignWidget->clearLandmarks();
-    m_alignWidget->setComputeEnabled(false);
     m_alignWidget->setSaveEnabled(false);
     m_meshView->clearHighlights();
 
     // Restore original view
-    m_meshView->setMesh(m_currentScan, false);
+    m_meshView->setMeshWithCurvature(m_currentScan, false);
 
     updateLandmarkStatus();
 }
@@ -347,7 +346,7 @@ void MainWindow::onComputeTransform()
 
     // Show preview by default
     m_alignWidget->setPreviewChecked(true);
-    m_meshView->setMeshTransformed(m_currentScan, m_normResult.transform, true);
+    m_meshView->setMeshTransformedWithCurvature(m_currentScan, m_normResult.transform, true);
 }
 
 void MainWindow::onPreviewToggled(bool checked)
@@ -357,10 +356,10 @@ void MainWindow::onPreviewToggled(bool checked)
 
     if (checked) {
         // Reset camera since transformed mesh is centered at origin
-        m_meshView->setMeshTransformed(m_currentScan, m_normResult.transform, true);
+        m_meshView->setMeshTransformedWithCurvature(m_currentScan, m_normResult.transform, true);
     } else {
         // Reset camera to show original mesh position
-        m_meshView->setMesh(m_currentScan, true);
+        m_meshView->setMeshWithCurvature(m_currentScan, true);
     }
 }
 

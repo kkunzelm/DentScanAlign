@@ -15,11 +15,8 @@ public:
     explicit AlignmentWidget(QWidget* parent = nullptr);
 
     // Update landmark status indicators
-    void setLandmarkStatus(int index, bool picked);  // 0=midline, 1=right, 2=left
+    void setLandmarkStatus(int index, bool picked);  // 0=point1, 1=point2, 2=point3
     void clearLandmarks();
-
-    // Enable/disable compute button (requires all 3 landmarks)
-    void setComputeEnabled(bool enabled);
 
     // Enable/disable save button (requires computed transform)
     void setSaveEnabled(bool enabled);
@@ -34,16 +31,14 @@ public:
 signals:
     void undoClicked();
     void clearClicked();
-    void computeClicked();
     void previewToggled(bool checked);
     void skipClicked();
     void saveClicked();
 
 private:
-    QLabel* m_landmarkLabels[3];    // Midline, Right, Left indicators
+    QLabel* m_landmarkLabels[3];    // Point 1, 2, 3 indicators
     QPushButton* m_undoBtn;
     QPushButton* m_clearBtn;
-    QPushButton* m_computeBtn;
     QCheckBox* m_previewCheck;
     QPushButton* m_skipBtn;
     QPushButton* m_saveBtn;

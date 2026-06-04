@@ -10,10 +10,10 @@ AlignmentWidget::AlignmentWidget(QWidget* parent)
     auto* mainLayout = new QVBoxLayout(this);
 
     // Landmark indicators
-    auto* landmarkGroup = new QGroupBox("Landmarks");
+    auto* landmarkGroup = new QGroupBox("Landmarks (click clockwise from midline)");
     auto* landmarkLayout = new QHBoxLayout(landmarkGroup);
 
-    const char* landmarkNames[3] = {"Midline", "Right", "Left"};
+    const char* landmarkNames[3] = {"1: Midline", "2", "3"};
     for (int i = 0; i < 3; ++i) {
         m_landmarkLabels[i] = new QLabel(QString("O %1").arg(landmarkNames[i]));
         m_landmarkLabels[i]->setStyleSheet("color: gray;");
@@ -24,13 +24,11 @@ AlignmentWidget::AlignmentWidget(QWidget* parent)
     // Action buttons row 1
     auto* actionLayout1 = new QHBoxLayout();
     m_undoBtn = new QPushButton("Undo Last");
-    m_clearBtn = new QPushButton("Clear All");
-    m_computeBtn = new QPushButton("Compute Transform");
-    m_computeBtn->setEnabled(false);
+    m_clearBtn = new QPushButton("Reset");
 
     actionLayout1->addWidget(m_undoBtn);
     actionLayout1->addWidget(m_clearBtn);
-    actionLayout1->addWidget(m_computeBtn);
+    actionLayout1->addStretch();
     mainLayout->addLayout(actionLayout1);
 
     // Preview toggle
@@ -60,7 +58,6 @@ AlignmentWidget::AlignmentWidget(QWidget* parent)
     // Connect signals
     connect(m_undoBtn, &QPushButton::clicked, this, &AlignmentWidget::undoClicked);
     connect(m_clearBtn, &QPushButton::clicked, this, &AlignmentWidget::clearClicked);
-    connect(m_computeBtn, &QPushButton::clicked, this, &AlignmentWidget::computeClicked);
     connect(m_previewCheck, &QCheckBox::toggled, this, &AlignmentWidget::previewToggled);
     connect(m_skipBtn, &QPushButton::clicked, this, &AlignmentWidget::skipClicked);
     connect(m_saveBtn, &QPushButton::clicked, this, &AlignmentWidget::saveClicked);
@@ -70,7 +67,7 @@ void AlignmentWidget::setLandmarkStatus(int index, bool picked)
 {
     if (index < 0 || index >= 3) return;
 
-    const char* landmarkNames[3] = {"Midline", "Right", "Left"};
+    const char* landmarkNames[3] = {"1: Midline", "2", "3"};
     if (picked) {
         m_landmarkLabels[index]->setText(QString("* %1").arg(landmarkNames[index]));
         m_landmarkLabels[index]->setStyleSheet("color: green; font-weight: bold;");
@@ -85,11 +82,6 @@ void AlignmentWidget::clearLandmarks()
     for (int i = 0; i < 3; ++i) {
         setLandmarkStatus(i, false);
     }
-}
-
-void AlignmentWidget::setComputeEnabled(bool enabled)
-{
-    m_computeBtn->setEnabled(enabled);
 }
 
 void AlignmentWidget::setSaveEnabled(bool enabled)

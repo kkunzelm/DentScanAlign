@@ -35,6 +35,14 @@ public:
                             const Eigen::Matrix4d& transform,
                             bool resetCamera = true);
 
+    // Set mesh with curvature-based coloring (convex=warm, concave=cool)
+    void setMeshWithCurvature(const std::shared_ptr<ScanData>& scan, bool resetCamera = true);
+
+    // Set transformed mesh with curvature coloring
+    void setMeshTransformedWithCurvature(const std::shared_ptr<ScanData>& scan,
+                                          const Eigen::Matrix4d& transform,
+                                          bool resetCamera = true);
+
     // Clear the mesh
     void clearMesh();
 

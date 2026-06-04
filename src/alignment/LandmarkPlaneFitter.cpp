@@ -68,34 +68,46 @@ PlaneResult fitPlane(
     Eigen::Vector3d normal = solver.eigenvectors().col(0); // smallest eigenvalue
 
     // Compute region centroids
-    Eigen::Vector3d midlineCentroid = computeCentroid(mesh, midlineVertices);
-    Eigen::Vector3d rightCentroid = computeCentroid(mesh, rightVertices);
-    Eigen::Vector3d leftCentroid = computeCentroid(mesh, leftVertices);
+    // User clicks: Point1 (midline/anterior), Point2, Point3 in CLOCKWISE order
+    // when viewing from occlusal (top) direction
+    Eigen::Vector3d p1Centroid = computeCentroid(mesh, midlineVertices);  // midline/anterior
+    Eigen::Vector3d p2Centroid = computeCentroid(mesh, rightVertices);    // clockwise from midline
+    Eigen::Vector3d p3Centroid = computeCentroid(mesh, leftVertices);     // clockwise from p2
 
-    // Y-axis: direction from midpoint of (right, left) toward midline
-    Eigen::Vector3d sidesMidpoint = (rightCentroid + leftCentroid) * 0.5;
-    Eigen::Vector3d yDirection = midlineCentroid - sidesMidpoint;
+    // Z-axis orientation from clockwise convention:
+    // If points are clicked clockwise when viewed from above (occlusal),
+    // then (P2-P1) × (P3-P1) points DOWN (into mouth).
+    // Align fitted normal with clockwise cross product direction.
+    Eigen::Vector3d v1 = p2Centroid - p1Centroid;
+    Eigen::Vector3d v2 = p3Centroid - p1Centroid;
+    Eigen::Vector3d clockwiseNormal = v1.cross(v2);
 
-    // Project Y onto the fitted plane (remove component along normal)
-    yDirection = yDirection - normal * (yDirection.dot(normal));
-    double yLen = yDirection.norm();
-    if (yLen < 1e-9) {
+    // Align normal with clockwiseNormal direction
+    if (clockwiseNormal.dot(normal) < 0) {
+        normal = -normal;
+    }
+
+    // X-axis: direction from P3 to P2, projected onto fitted plane
+    // This makes X parallel to the line between points 2 and 3
+    Eigen::Vector3d xDirection = p2Centroid - p3Centroid;
+    xDirection = xDirection - normal * (xDirection.dot(normal));
+    double xLen = xDirection.norm();
+    if (xLen < 1e-9) {
         result.valid = false;
         return result;
     }
-    Eigen::Vector3d yAxis = yDirection / yLen;
+    Eigen::Vector3d xAxis = xDirection / xLen;
 
-    // X-axis: perpendicular to both Y and Z, in the plane
-    // X = Z × Y gives left-to-right direction if Z is up and Y is forward
-    Eigen::Vector3d xAxis = normal.cross(yAxis);
-    xAxis.normalize();
+    // Y-axis: perpendicular to X in the plane, pointing toward P1 (anterior)
+    // Y = Z × X (right-hand rule: if Z up and X right, Y is forward)
+    Eigen::Vector3d yAxis = normal.cross(xAxis);
 
-    // Ensure Z points in the "occlusal" direction (positive Z should be away from mouth)
-    // Convention: if right is to the left of left (negative X direction), flip Z
-    Eigen::Vector3d rightDir = rightCentroid - leftCentroid;
-    if (rightDir.dot(xAxis) < 0) {
-        normal = -normal;
-        xAxis = -xAxis;
+    // Ensure Y points toward P1 (anterior), not away
+    Eigen::Vector3d backMidpoint = (p2Centroid + p3Centroid) * 0.5;
+    Eigen::Vector3d towardP1 = p1Centroid - backMidpoint;
+    if (yAxis.dot(towardP1) < 0) {
+        yAxis = -yAxis;
+        xAxis = -xAxis;  // flip X too to maintain right-hand rule
     }
 
     result.normal = normal;
