@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 Prof. Dr. Karl-Heinz Kunzelmann <https://www.kunzelmann.de>
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 #pragma once
 
 #include "Mesh.h"
@@ -68,6 +71,9 @@ public:
 
     // Skip current scan (no alignment saved)
     void skipCurrent();
+
+    // Mark current scan as processed (for progress tracking when saving in background)
+    void markCurrentAsProcessed();
 
     // Load existing alignment for a scan (for review mode)
     bool loadAlignment(const std::string& relPath, AlignmentRecord& record,

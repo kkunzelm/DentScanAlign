@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 Prof. Dr. Karl-Heinz Kunzelmann <https://www.kunzelmann.de>
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 #include "AlignmentSession.h"
 #include "STLReader.h"
 #include "STLWriter.h"
@@ -280,6 +283,12 @@ bool Session::saveAlignment(const AlignmentRecord& record, std::string& errorMsg
 void Session::skipCurrent()
 {
     ++m_currentIndex;
+}
+
+void Session::markCurrentAsProcessed()
+{
+    ++m_currentIndex;
+    ++m_processedCount;
 }
 
 bool Session::loadAlignment(const std::string& relPath, AlignmentRecord& record,

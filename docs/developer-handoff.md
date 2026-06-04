@@ -4,9 +4,22 @@
 
 **Date:** 2026-06-04
 **Build Status:** Compiles and links successfully
-**Phase:** Phase 5 - Initial testing complete, transformation working
+**Phase:** Phase 5 - UX polish complete, ready for production use
 
 ## Recent Changes (Latest Session)
+
+### Session 2026-06-04 (UX Polish)
+
+- **Progress bar fix**: Changed from `skipCurrent()` to new `markCurrentAsProcessed()` method that increments both `m_currentIndex` and `m_processedCount`, so progress bar advances correctly after each save
+- **Focus Save button**: After 3rd landmark click and transform computation, focus moves to "Save & Next" button for quick keyboard/mouse access
+- **Window title update**: Added "Prof. Kunzelmann" to title: `"DentScanAlign - Coordinate Normalization Tool (Prof. Kunzelmann)"`
+- **About dialog**: Added Help menu with "About..." option showing:
+  - Prof. Dr. Karl-Heinz Kunzelmann
+  - Clickable link to www.kunzelmann.de
+  - Version 1.0
+- **Last scan handling**: Fixed error when processing final scan - the progress bar fix also ensures `remainingCount()` returns 0 correctly, showing completion message instead of error
+
+### Previous Session
 
 - Reduced landmark region size from 8mm to 2mm
 - Made clicking instant by deferring region growing to "Compute Transform"
@@ -57,6 +70,7 @@
   - JSON alignment file I/O (custom parser, no external JSON library)
   - Writes both alignment JSON and normalized STL on save
   - Flat filename scheme for JSON: `Scanner_A__SKD30__scan1.json`
+  - `markCurrentAsProcessed()` method for accurate progress tracking with background saves
 
 ### Phase 4: GUI ✓
 
@@ -74,17 +88,20 @@
   - Skip and Save & Next buttons
   - Status label for user guidance
   - Transform auto-computed when 3rd point clicked (no manual button)
+  - `focusSaveButton()` method for keyboard/mouse accessibility after transform
 
 - **MainWindow.h/cpp**
   - Directory selection UI (input/output paths)
   - Progress bar and scan counter
+  - Help menu with About dialog (Prof. Dr. Karl-Heinz Kunzelmann, www.kunzelmann.de)
   - Orchestrates the full workflow:
     1. Initialize session
     2. Load next unprocessed scan
     3. Enable point picking
     4. Grow regions around picked landmarks
     5. Compute transform when 3 landmarks picked
-    6. Preview and save
+    6. Focus Save button for quick access
+    7. Preview and save
 
 - **main.cpp**
   - QApplication setup with VTK OpenGL format
@@ -169,6 +186,8 @@ make -j$(nproc)
 - **Axis alignment**: X-axis is parallel to line between points 2-3; Y-axis perpendicular pointing toward point 1
 - **Standard camera view**: After transform, camera resets to standard orientation with Z toward viewer (occlusal view), Y pointing up (anterior), X pointing right. This ensures consistent view regardless of how user rotated mesh during landmark picking.
 - **Background file I/O**: JSON and STL writing happens in a separate thread via `QtConcurrent::run()`, allowing the user to continue with the next scan immediately
+- **Save button focus**: After transform computed, focus automatically moves to "Save & Next" button for efficient keyboard/mouse workflow
+- **Progress tracking**: Uses `markCurrentAsProcessed()` instead of `skipCurrent()` when saving, ensuring progress bar updates correctly even with background saves
 
 ### Known Limitations
 

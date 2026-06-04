@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 Prof. Dr. Karl-Heinz Kunzelmann <https://www.kunzelmann.de>
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 #pragma once
 
 #include <QWidget>
@@ -27,6 +30,9 @@ public:
 
     // Set status message
     void setStatus(const QString& msg);
+
+    // Focus the save button (for keyboard navigation after landmarks picked)
+    void focusSaveButton();
 
 signals:
     void undoClicked();

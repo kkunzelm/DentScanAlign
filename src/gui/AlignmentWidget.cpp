@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 Prof. Dr. Karl-Heinz Kunzelmann <https://www.kunzelmann.de>
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 #include "AlignmentWidget.h"
 
 #include <QVBoxLayout>
@@ -106,4 +109,9 @@ void AlignmentWidget::setPreviewChecked(bool checked)
 void AlignmentWidget::setStatus(const QString& msg)
 {
     m_statusLabel->setText(msg);
+}
+
+void AlignmentWidget::focusSaveButton()
+{
+    m_saveBtn->setFocus();
 }

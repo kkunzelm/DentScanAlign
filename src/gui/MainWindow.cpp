@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 Prof. Dr. Karl-Heinz Kunzelmann <https://www.kunzelmann.de>
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 #include "MainWindow.h"
 
 #include <QVBoxLayout>
@@ -8,6 +11,10 @@
 #include <QSplitter>
 #include <QSettings>
 #include <QtConcurrent>
+#include <QMenuBar>
+#include <QMenu>
+#include <QDesktopServices>
+#include <QUrl>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -32,8 +39,15 @@ void MainWindow::saveSettings()
 
 void MainWindow::setupUI()
 {
-    setWindowTitle("DentScanAlign - Coordinate Normalization Tool");
+    setWindowTitle("DentScanAlign - Coordinate Normalization Tool (Prof. Kunzelmann)");
     resize(1200, 800);
+
+    // Menu bar
+    auto* menuBar = new QMenuBar(this);
+    setMenuBar(menuBar);
+    auto* helpMenu = menuBar->addMenu("&Help");
+    auto* aboutAction = helpMenu->addAction("&About...");
+    connect(aboutAction, &QAction::triggered, this, &MainWindow::onAbout);
 
     auto* centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
@@ -348,6 +362,9 @@ void MainWindow::onComputeTransform()
     // Show preview by default
     m_alignWidget->setPreviewChecked(true);
     m_meshView->setMeshTransformed(m_currentScan, m_normResult.transform, true);
+
+    // Focus save button for quick keyboard/mouse access
+    m_alignWidget->focusSaveButton();
 }
 
 void MainWindow::onPreviewToggled(bool checked)
@@ -427,6 +444,22 @@ void MainWindow::onSaveAndNext()
     });
 
     // Update session state and load next immediately
-    m_session.skipCurrent();  // Advances index without waiting for save
+    m_session.markCurrentAsProcessed();  // Increment processed count for progress bar
     loadNextScan();
+}
+
+void MainWindow::onAbout()
+{
+    QMessageBox aboutBox(this);
+    aboutBox.setWindowTitle("About DentScanAlign");
+    aboutBox.setTextFormat(Qt::RichText);
+    aboutBox.setText(
+        "<h2>DentScanAlign</h2>"
+        "<p>Coordinate Normalization Tool for Dental Intraoral Scans</p>"
+        "<p><b>Author:</b> Prof. Dr. Karl-Heinz Kunzelmann</p>"
+        "<p><a href=\"https://www.kunzelmann.de\">www.kunzelmann.de</a></p>"
+        "<p>Version 1.0</p>"
+    );
+    aboutBox.setIcon(QMessageBox::Information);
+    aboutBox.exec();
 }
