@@ -1,0 +1,24 @@
+# Build directories
+build/
+cmake-build-*/
+
+# IDE files
+.idea/
+.vscode/
+*.user
+
+# Compiled files
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+
+# Qt generated
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+
+# OS files
+.DS_Store
+Thumbs.db

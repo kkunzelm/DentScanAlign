@@ -97,4 +97,4 @@ src/
 
 ## Test Data
 
-Sample STL files: `/home/kkunzelm/claude-code/match3d-plus/data/3d-data/stl/`
+Dental scan STL files: `/KHKsData/usr2/daten/P2026-Kessler-ScanVergleich/IOS/`

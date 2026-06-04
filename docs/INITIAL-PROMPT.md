@@ -82,7 +82,7 @@ make -j$(nproc)
 
 ## Test Data
 
-Sample STL files are in:
-- `/home/kkunzelm/claude-code/match3d-plus/data/3d-data/stl/`
+Dental scan STL files are in:
+- `/KHKsData/usr2/daten/P2026-Kessler-ScanVergleich/IOS/`
 
 Start with a small subset for testing.
