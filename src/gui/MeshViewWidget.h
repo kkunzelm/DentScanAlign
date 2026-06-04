@@ -49,6 +49,9 @@ public:
     // Reset camera to fit the mesh
     void resetCamera();
 
+    // Reset camera to standard axes-aligned view (Z toward viewer, Y up)
+    void resetCameraToStandardView();
+
     // Point picking mode
     void setPickMode(bool active);
     bool pickMode() const { return m_pickMode; }

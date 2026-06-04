@@ -19,7 +19,9 @@
 - **Simplified labels**: Changed "Midline, Right, Left" to "Point 1 (midline), 2, 3 (clockwise)"
 - **Fixed Z-axis orientation**: Uses clockwise point convention for consistent up direction
 - **X-axis alignment**: X-axis now parallel to line between points 2 and 3
-- **Curvature coloring**: Mesh displays with convex=orange, concave=blue coloring to distinguish top from bottom
+- **Camera reset**: Camera resets when Reset button clicked or transform computed
+- **Standard view after transform**: Camera resets to axes-aligned view (Z toward viewer, Y up) showing occlusal surface
+- **Background save**: File I/O runs in background via QtConcurrent, allowing immediate continuation to next scan
 
 ## What Was Implemented
 
@@ -67,10 +69,11 @@
 
 - **AlignmentWidget.h/cpp**
   - Landmark status indicators (○ unpicked, ● picked)
-  - Action buttons: Undo Last, Clear All, Compute Transform
+  - Action buttons: Undo Last, Reset
   - Preview checkbox (toggle normalized view)
   - Skip and Save & Next buttons
   - Status label for user guidance
+  - Transform auto-computed when 3rd point clicked (no manual button)
 
 - **MainWindow.h/cpp**
   - Directory selection UI (input/output paths)
@@ -164,7 +167,8 @@ make -j$(nproc)
 - **Auto-preview**: After computing transform, preview is automatically enabled and camera resets to show normalized mesh
 - **Clockwise point convention**: User clicks 3 points clockwise from midline when viewing from occlusal; this determines Z-axis direction
 - **Axis alignment**: X-axis is parallel to line between points 2-3; Y-axis perpendicular pointing toward point 1
-- **Curvature coloring**: Mean curvature visualization (convex=orange, concave=blue) helps distinguish occlusal from apical view
+- **Standard camera view**: After transform, camera resets to standard orientation with Z toward viewer (occlusal view), Y pointing up (anterior), X pointing right. This ensures consistent view regardless of how user rotated mesh during landmark picking.
+- **Background file I/O**: JSON and STL writing happens in a separate thread via `QtConcurrent::run()`, allowing the user to continue with the next scan immediately
 
 ### Known Limitations
 
@@ -180,13 +184,15 @@ make -j$(nproc)
 
 3. **JSON parsing** - The custom JSON parser is minimal; complex strings with special characters may not parse correctly
 
-4. **VTK threading** - All VTK operations must happen on main thread; don't add background processing without care
+4. **VTK threading** - All VTK operations must happen on main thread; don't add background processing without care. Note: the background save is safe because it only writes files (no VTK calls)
+
+5. **Background save race condition** - If user quits before background save completes, data may be lost. Consider adding graceful shutdown that waits for pending writes
 
 ## Dependencies
 
 | Library | Version | Notes |
 |---------|---------|-------|
-| Qt | 6.x | Widgets module |
+| Qt | 6.x | Widgets, Concurrent modules |
 | VTK | 9.3 | Custom build at `~/VTK-install-linux/` |
 | CGAL | 6.0.1 | Uses `std::optional` property_map API |
 | Eigen | 3.4.0 | Matrix math |

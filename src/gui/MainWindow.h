@@ -7,6 +7,7 @@
 #include "ToothSegmentation.h"
 #include "LandmarkPlaneFitter.h"
 #include "CoordinateNormalizer.h"
+#include "STLWriter.h"
 
 #include <QMainWindow>
 #include <QLineEdit>

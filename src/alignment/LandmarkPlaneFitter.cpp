@@ -87,9 +87,10 @@ PlaneResult fitPlane(
         normal = -normal;
     }
 
-    // X-axis: direction from P3 to P2, projected onto fitted plane
+    // X-axis: direction from P2 to P3, projected onto fitted plane
     // This makes X parallel to the line between points 2 and 3
-    Eigen::Vector3d xDirection = p2Centroid - p3Centroid;
+    // Convention: X points left(-) to right(+), so from P2 to P3
+    Eigen::Vector3d xDirection = p3Centroid - p2Centroid;
     xDirection = xDirection - normal * (xDirection.dot(normal));
     double xLen = xDirection.norm();
     if (xLen < 1e-9) {

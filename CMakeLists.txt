@@ -11,7 +11,7 @@ set(CMAKE_AUTOUIC ON)
 set(VTK_DIR "$ENV{HOME}/VTK-install-linux/lib/cmake/vtk-9.3")
 
 # Find dependencies
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent)
 find_package(VTK 9.3 REQUIRED COMPONENTS
     CommonCore
     CommonDataModel
@@ -65,6 +65,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Widgets
+    Qt6::Concurrent
     ${VTK_LIBRARIES}
     CGAL::CGAL
     Eigen3::Eigen

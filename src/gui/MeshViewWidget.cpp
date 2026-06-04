@@ -4,6 +4,7 @@
 #include <QMouseEvent>
 #include <QVTKOpenGLNativeWidget.h>
 
+#include <vtkCamera.h>
 #include <vtkCellPicker.h>
 #include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkProperty.h>
@@ -224,6 +225,9 @@ void MeshViewWidget::setMesh(const std::shared_ptr<ScanData>& scan, bool resetCa
     auto pd = cgalToVTK(scan->mesh);
     m_polyData->ShallowCopy(pd);
 
+    // Ensure plain shading (no scalar colors)
+    m_mapper->ScalarVisibilityOff();
+
     if (resetCam)
         resetCamera();
 
@@ -245,8 +249,11 @@ void MeshViewWidget::setMeshTransformed(const std::shared_ptr<ScanData>& scan,
     auto pd = cgalToVTKTransformed(scan->mesh, transform);
     m_polyData->ShallowCopy(pd);
 
+    // Ensure plain shading (no scalar colors)
+    m_mapper->ScalarVisibilityOff();
+
     if (resetCam)
-        resetCamera();
+        resetCameraToStandardView();  // Use standard axes-aligned view for transformed mesh
 
     m_renderWindow->Render();
 }
@@ -355,6 +362,28 @@ void MeshViewWidget::clearMesh()
 void MeshViewWidget::resetCamera()
 {
     m_renderer->ResetCamera();
+    m_renderWindow->Render();
+}
+
+void MeshViewWidget::resetCameraToStandardView()
+{
+    // First fit the camera to the mesh bounds
+    m_renderer->ResetCamera();
+
+    // Get camera and set standard orientation:
+    // Looking down +Z axis (camera at -Z), Y pointing up, X pointing right
+    // This shows the occlusal (top) view of the normalized dental mesh
+    vtkCamera* camera = m_renderer->GetActiveCamera();
+
+    // Get distance from ResetCamera
+    double* focalPt = camera->GetFocalPoint();
+    double distance = camera->GetDistance();
+
+    // Position camera along -Z axis, looking at focal point (looking up toward +Z)
+    camera->SetPosition(focalPt[0], focalPt[1], focalPt[2] - distance);
+    camera->SetViewUp(0, 1, 0);  // Y points up
+
+    m_renderer->ResetCameraClippingRange();
     m_renderWindow->Render();
 }
 

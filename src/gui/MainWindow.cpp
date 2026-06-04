@@ -7,6 +7,7 @@
 #include <QMessageBox>
 #include <QSplitter>
 #include <QSettings>
+#include <QtConcurrent>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -191,7 +192,7 @@ void MainWindow::loadNextScan()
         return;
     }
 
-    m_meshView->setMeshWithCurvature(m_currentScan);
+    m_meshView->setMesh(m_currentScan);
     updateProgress();
     updateLandmarkStatus();
 }
@@ -284,7 +285,7 @@ void MainWindow::onUndoLandmark()
 
     // Restore original view if preview was on
     if (m_alignWidget->isPreviewChecked()) {
-        m_meshView->setMeshWithCurvature(m_currentScan, false);
+        m_meshView->setMesh(m_currentScan, false);
     }
 
     updateLandmarkStatus();
@@ -302,8 +303,8 @@ void MainWindow::onClearLandmarks()
     m_alignWidget->setSaveEnabled(false);
     m_meshView->clearHighlights();
 
-    // Restore original view
-    m_meshView->setMeshWithCurvature(m_currentScan, false);
+    // Restore original view and reset camera
+    m_meshView->setMesh(m_currentScan, true);
 
     updateLandmarkStatus();
 }
@@ -346,7 +347,7 @@ void MainWindow::onComputeTransform()
 
     // Show preview by default
     m_alignWidget->setPreviewChecked(true);
-    m_meshView->setMeshTransformedWithCurvature(m_currentScan, m_normResult.transform, true);
+    m_meshView->setMeshTransformed(m_currentScan, m_normResult.transform, true);
 }
 
 void MainWindow::onPreviewToggled(bool checked)
@@ -356,10 +357,10 @@ void MainWindow::onPreviewToggled(bool checked)
 
     if (checked) {
         // Reset camera since transformed mesh is centered at origin
-        m_meshView->setMeshTransformedWithCurvature(m_currentScan, m_normResult.transform, true);
+        m_meshView->setMeshTransformed(m_currentScan, m_normResult.transform, true);
     } else {
         // Reset camera to show original mesh position
-        m_meshView->setMeshWithCurvature(m_currentScan, true);
+        m_meshView->setMesh(m_currentScan, true);
     }
 }
 
@@ -405,11 +406,27 @@ void MainWindow::onSaveAndNext()
     record.transform4x4 = CoordinateNormalizer::matrixToArray(m_normResult.transform);
     record.valid = true;
 
-    std::string errorMsg;
-    if (!m_session.saveAlignment(record, errorMsg)) {
-        QMessageBox::critical(this, "Save Error", QString::fromStdString(errorMsg));
-        return;
-    }
+    // Capture data for background save
+    std::string jsonPath = m_session.outputDirectory() + "/alignments/" +
+        [&]() {
+            std::string flat = record.sourceFile;
+            for (char& c : flat) if (c == '/' || c == '\\') c = '_';
+            if (flat.size() > 4 && flat.substr(flat.size() - 4) == ".stl")
+                flat = flat.substr(0, flat.size() - 4);
+            return flat + ".json";
+        }();
+    std::string stlPath = m_session.outputDirectory() + "/normalized/" + record.sourceFile;
+    std::shared_ptr<ScanData> scanToSave = m_currentScan;
+    Eigen::Matrix4d transform = m_normResult.transform;
 
+    // Run save in background
+    QtConcurrent::run([record, jsonPath, stlPath, scanToSave, transform]() {
+        std::string errorMsg;
+        AlignmentSession::writeJson(record, jsonPath, errorMsg);
+        STLWriter::writeTransformed(*scanToSave, transform, stlPath, errorMsg);
+    });
+
+    // Update session state and load next immediately
+    m_session.skipCurrent();  // Advances index without waiting for save
     loadNextScan();
 }
