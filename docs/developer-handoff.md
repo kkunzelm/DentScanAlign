@@ -203,6 +203,38 @@ make -j$(nproc)
 - **DentScanComparePro** (`~/claude-code/DentScanComparePro/`) - Source for core files, batch processing pipeline
 - **DentScanCompare** (`~/claude-code/DentScanCompare/`) - Original comparison tool
 
+## Next Phase: DentScanComparePro
+
+DentScanAlign (this tool) is **complete and working**. The next phase continues in **DentScanComparePro** (`~/claude-code/DentScanComparePro/`).
+
+### Tasks for DentScanComparePro
+
+1. **Fix segmentation fault** - The program crashes on startup. This was introduced during recent axis alignment improvements in the segmentation module. Remove the problematic transformations.
+
+2. **Add external reference registration** - Currently supports GPA mean or fixed scanner reference. Need to add:
+   - `reference_strategy: "external_mesh: /path/to/reference.stl"` config option
+   - Load external gold-standard mesh as reference
+   - Register all scans directly to external reference via ICP (skip GPA)
+
+3. **Enhance R-compatible export** - Existing CSV export is good, but consider adding:
+   - Wide-format CSV (pivot table for multivariate analysis)
+   - Per-vertex distance export for granular analysis
+   - Metadata summary JSON (study-level processing record)
+
+### Workflow Integration
+
+1. **DentScanAlign** normalizes scans → outputs to `normalized/` directory
+2. **DentScanComparePro** reads normalized scans → registers to reference → computes metrics → exports CSV for R
+
+### What Already Works in DentScanComparePro
+
+- ICP registration (point-to-plane)
+- GPA mean reference computation
+- Trueness metrics (RMS, MAD, Hausdorff, bias, coverage)
+- Precision metrics (pairwise RMS, SD, CV)
+- CSV export (long format, R-compatible)
+- Batch processing with progress tracking
+
 ## Contact
 
 For questions about the implementation, refer to:
