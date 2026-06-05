@@ -6,7 +6,7 @@
 
 ### Why Coordinate Normalization?
 
-When comparing intraoral scans from different scanners or scanning sessions, each scanner produces STL files in its own arbitrary coordinate system. One scanner might place the occlusal surface facing up, another facing sideways. This makes direct comparison impossible.
+When comparing intraoral scans from different scanners or scanning sessions, each scanner produces mesh files in its own arbitrary coordinate system. One scanner might place the occlusal surface facing up, another facing sideways. This makes direct comparison impossible.
 
 **DentScanAlign solves this problem** by transforming all scans into a standardized anatomical coordinate system. After normalization:
 
@@ -25,7 +25,7 @@ This standardization is essential before:
 
 ```
 Step 1: Scan collection
-   └── Multiple scanners produce STL files in different orientations
+   └── Multiple scanners produce STL, PLY, or OBJ files in different orientations
 
 Step 2: DentScanAlign (this tool)
    └── Interactive landmark placement normalizes all scans
@@ -51,8 +51,8 @@ P2024-MyStudy/
 │   ├── Scanner_A/
 │   │   ├── specimen_01/
 │   │   │   ├── scan_1.stl
-│   │   │   ├── scan_2.stl
-│   │   │   └── scan_3.stl
+│   │   │   ├── scan_2.ply
+│   │   │   └── scan_3.obj
 │   │   ├── specimen_02/
 │   │   │   └── ...
 │   │   └── specimen_03/
@@ -64,7 +64,7 @@ P2024-MyStudy/
 │
 ├── normalized/                   # Output from DentScanAlign
 │   ├── alignments/               # JSON metadata (auto-created)
-│   └── normalized/               # Transformed STLs (auto-created)
+│   └── normalized/               # Transformed mesh files (auto-created)
 │
 └── results/                      # Output from DentScanComparePro
     ├── registered/
@@ -75,7 +75,7 @@ P2024-MyStudy/
 
 - Use descriptive folder names: `Scanner_A`, `Scanner_B` (or actual scanner names like `Trios4`, `Primescan`)
 - Number specimens consistently: `specimen_01`, `specimen_02`, ...
-- Number repeated scans: `scan_1.stl`, `scan_2.stl`, ...
+- Number repeated scans consistently, for example `scan_1.stl`, `scan_2.ply`, `scan_3.obj`, ...
 - Avoid spaces in filenames (use underscores instead)
 
 ### Launching the Application
@@ -86,12 +86,21 @@ cd ~/claude-code/DentScanAlign/build
 ```
 
 The main window appears with:
-- Directory selection fields at the top
+- A **Batch processing** area for whole input/output directories
+- A **Single file processing** area for one manually selected scan
+- A shared **Save as STL** checkbox
 - A 3D mesh viewer in the center
 - Landmark controls on the right
-- Progress indicator below the directories
+- A progress/status indicator below the file selection areas
 
 ## Step-by-Step Workflow
+
+DentScanAlign now supports two workflows:
+
+- **Batch processing** for a complete study directory with many scans
+- **Single file processing** for manually opening and saving one scan
+
+### Batch Processing Workflow
 
 ### Step 1: Select Directories
 
@@ -99,10 +108,15 @@ The main window appears with:
 2. Click **"Browse..."** next to **Output** and select your `normalized` folder
 3. The paths are remembered between sessions
 
-### Step 2: Start Processing
+### Step 2: Choose Output Format and Start Processing
+
+Before starting, choose how normalized meshes should be saved:
+
+- Leave **"Save as STL"** unchecked to keep each file in its original format (`.stl` stays `.stl`, `.ply` stays `.ply`, `.obj` stays `.obj`)
+- Check **"Save as STL"** to save every normalized scan as an STL file, regardless of the input format
 
 Click **"Start Processing"**. The application will:
-- Scan all subdirectories for STL files
+- Scan all subdirectories for supported mesh files (`.stl`, `.ply`, `.obj`)
 - Skip any files that already have alignment data
 - Load the first unprocessed scan
 - Display the mesh in the 3D viewer
@@ -166,7 +180,7 @@ The preview shows the mesh in the standardized orientation:
 
 If the preview looks correct, click **"Save & Next"**. The application:
 1. Saves the transformation to a JSON file
-2. Writes the normalized STL file
+2. Writes the normalized mesh file in the selected output format
 3. Automatically loads the next unprocessed scan
 
 **Keyboard shortcut:** After placing 3 landmarks, the "Save & Next" button is focused. Press **Enter** to save quickly.
@@ -181,13 +195,70 @@ If a scan is corrupted, has artifacts, or cannot be properly aligned:
 
 When all scans are processed, a message appears showing the total count. The progress bar shows 100%.
 
+
+### Single File Processing Workflow
+
+Use single file processing when you want to normalize one scan manually instead of processing a whole study folder.
+
+### Step 1: Select One Input File
+
+1. In the **Single file processing** area, click **"Browse..."** next to **Input file**
+2. Select one `.stl`, `.ply`, or `.obj` file
+3. The program suggests an output filename with `_normalized` added to the original name
+
+Example:
+
+```
+scan_01.ply  →  scan_01_normalized.ply
+```
+
+### Step 2: Choose the Output File
+
+1. Click **"Browse..."** next to **Output file**
+2. Choose where the transformed mesh should be saved
+3. The output file must be different from the input file, so the original scan is not overwritten
+
+The **Save as STL** checkbox also applies here:
+
+- If **"Save as STL"** is unchecked, the output keeps the input format
+- If **"Save as STL"** is checked, the output filename is changed to `.stl`
+
+Examples:
+
+```
+Input:  scan_01.ply
+Output with Save as STL unchecked: scan_01_normalized.ply
+Output with Save as STL checked:   scan_01_normalized.stl
+```
+
+### Step 3: Open, Align, and Save
+
+Click **"Open Single File"**. The scan is loaded into the 3D viewer. Place the three landmarks and review the preview exactly as in batch mode.
+
+When the preview looks correct, click **"Save & Next"**. In single file mode this saves the selected file and shows a confirmation message. It does not automatically load another scan.
+
+A JSON alignment metadata file is saved next to the output mesh, using the same filename base.
+
+Example:
+
+```
+scan_01_normalized.ply
+scan_01_normalized.json
+```
+
 ## Understanding the Output
 
-### Normalized STL Files
+### Normalized Mesh Files
 
-Location: `output_directory/normalized/`
+Batch mode location: `output_directory/normalized/`
 
-These are the original meshes transformed to the standard coordinate system. The vertex positions are modified, but the mesh topology (triangles, connectivity) is unchanged.
+Single file mode location: the output file path selected manually by the user
+
+These are the original meshes transformed to the standard coordinate system. The vertex positions are modified, but the mesh topology is kept.
+
+DentScanAlign can process `.stl`, `.ply`, and `.obj` files. When **"Save as STL"** is unchecked, the normalized file keeps the same format as the input file. When **"Save as STL"** is checked, every normalized file is saved as `.stl`.
+
+For PLY and OBJ files, the application tries to preserve extra information such as colors, comments, material references, groups, texture coordinates, and other file records when saving in the same format. If normals need to be updated after the transformation, the program recomputes or updates them as needed.
 
 **Use these files for:**
 - Visual inspection in any 3D viewer
@@ -196,7 +267,9 @@ These are the original meshes transformed to the standard coordinate system. The
 
 ### Alignment JSON Files
 
-Location: `output_directory/alignments/`
+Batch mode location: `output_directory/alignments/`
+
+Single file mode location: next to the selected output mesh file
 
 Each JSON file contains:
 
@@ -259,30 +332,30 @@ Each JSON file contains:
 
 ### Quality Control
 
-After processing a batch:
-1. Open several normalized STL files in a 3D viewer
+After processing a batch or an important single file:
+1. Open the normalized mesh files in a 3D viewer
 2. Verify they all have consistent orientation
 3. Check that the occlusal surface faces upward
 4. Confirm anterior points forward
 
 If inconsistencies are found:
-1. Delete the problematic JSON and STL files
+1. Delete the problematic JSON and normalized mesh files
 2. Restart DentScanAlign
 3. Re-process only the affected scans
 
 ## Troubleshooting
 
-### "No STL files found"
+### "No supported mesh files found"
 
-- Check that the input directory contains `.stl` files
+- Check that the input directory contains `.stl`, `.ply`, or `.obj` files
 - Files may be in subdirectories (the tool searches recursively)
-- Ensure file extensions are lowercase `.stl`, not `.STL`
+- File extensions may be uppercase or lowercase, such as `.STL`, `.PLY`, or `.OBJ`
 
 ### Mesh appears black or invisible
 
 - The mesh may be very small or very large
 - Use scroll wheel to zoom out significantly
-- Check if the STL file is valid in another viewer
+- Check if the mesh file is valid in another viewer
 
 ### Landmarks don't appear where clicked
 
@@ -296,6 +369,24 @@ If inconsistencies are found:
 - Ensure you're using the latest build
 - Rebuild with `make -j$(nproc)`
 
+
+### Single file does not open
+
+- Check that the selected file is `.stl`, `.ply`, or `.obj`
+- Try opening the same file in another 3D viewer to confirm that it is valid
+- Make sure the file path is readable and does not point to a directory
+
+### Output file changes extension automatically
+
+This is expected. The program protects the selected output format:
+
+- With **"Save as STL"** checked, the output extension is changed to `.stl`
+- With **"Save as STL"** unchecked, the output extension follows the input file format
+
+### Program warns that input and output are the same file
+
+Choose a different output filename. DentScanAlign does not overwrite the original input scan in single file mode.
+
 ### Transform preview looks wrong
 
 - Verify landmarks are placed clockwise when viewing occlusally
@@ -303,6 +394,11 @@ If inconsistencies are found:
 - Use "Reset" and try again with clearer landmark positions
 
 ## Frequently Asked Questions
+
+
+**Q: Can I process just one file without preparing a study directory?**
+
+A: Yes. Use the **Single file processing** section. Select one input mesh file, choose the exact output file path, click **"Open Single File"**, place the landmarks, and save.
 
 **Q: Can I re-process a scan that was already aligned?**
 
@@ -321,13 +417,18 @@ A: Yes. The same landmark convention applies. Place Point 1 at the anterior midl
 
 **Q: What coordinate units does the output use?**
 
-A: The same units as the input STL files (typically millimeters for dental scanners). The transformation only rotates and translates; it does not scale.
+A: The same units as the input mesh files (typically millimeters for dental scanners). The transformation only rotates and translates; it does not scale.
+
+
+**Q: Should I use "Save as STL"?**
+
+A: Use it when your downstream software requires STL files. Leave it unchecked if you want to keep PLY colors, OBJ material references, texture coordinates, or other format-specific information.
 
 **Q: Can I undo after saving?**
 
 A: Not within the application. To redo a scan:
 1. Delete its JSON file from `alignments/`
-2. Delete its STL file from `normalized/`
+2. Delete its normalized mesh file from `normalized/`
 3. Restart and re-process
 
 ## Contact

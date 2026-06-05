@@ -33,7 +33,10 @@ public:
 private slots:
     void onBrowseInput();
     void onBrowseOutput();
+    void onBrowseSingleInput();
+    void onBrowseSingleOutput();
     void onStartProcessing();
+    void onOpenSingleFile();
     void onPointPicked(double x, double y, double z);
     void onUndoLandmark();
     void onClearLandmarks();
@@ -48,6 +51,9 @@ private:
     void loadSettings();
     void saveSettings();
     void loadNextScan();
+    void startSingleFile(const QString& inputFile, const QString& outputFile);
+    void resetLandmarkState();
+    QString adjustedSingleOutputPath(const QString& inputFile, const QString& requestedOutputFile, bool saveAsStl) const;
     void updateProgress();
     void updateLandmarkStatus();
     void growRegion(int landmarkIndex);
@@ -62,12 +68,21 @@ private:
     QProgressBar* m_progressBar;
     QCheckBox* m_saveAsStlCheck;
 
+    QLineEdit* m_singleInputFileEdit;
+    QLineEdit* m_singleOutputFileEdit;
+    QPushButton* m_browseSingleInputBtn;
+    QPushButton* m_browseSingleOutputBtn;
+    QPushButton* m_openSingleBtn;
+
     MeshViewWidget* m_meshView;
     AlignmentWidget* m_alignWidget;
 
     // Session state
     AlignmentSession::Session m_session;
     std::shared_ptr<ScanData> m_currentScan;
+    bool m_singleFileMode = false;
+    std::string m_singleInputPath;
+    std::string m_singleOutputPath;
 
     // Landmark picking state
     struct LandmarkData {
