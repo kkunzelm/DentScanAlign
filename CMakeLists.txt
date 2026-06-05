@@ -29,6 +29,7 @@ find_package(Eigen3 REQUIRED CONFIG)
 set(CORE_SOURCES
     src/core/STLReader.cpp
     src/core/STLWriter.cpp
+    src/core/MeshIO.cpp
     src/core/ToothSegmentation.cpp
 )
 

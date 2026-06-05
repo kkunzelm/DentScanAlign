@@ -66,8 +66,8 @@ public:
     std::string currentScanAbsolutePath() const { return m_currentAbsPath; }
     std::size_t currentIndex() const { return m_currentIndex; }
 
-    // Save alignment and write normalized STL
-    bool saveAlignment(const AlignmentRecord& record, std::string& errorMsg);
+    // Save alignment and write normalized mesh. If saveAsStl is true, output uses .stl; otherwise it preserves input format.
+    bool saveAlignment(const AlignmentRecord& record, bool saveAsStl, std::string& errorMsg);
 
     // Skip current scan (no alignment saved)
     void skipCurrent();
@@ -88,12 +88,12 @@ public:
     // Paths
     std::string inputDirectory() const { return m_inputDir; }
     std::string outputDirectory() const { return m_outputDir; }
+    std::string normalizedOutputPath(const std::string& relPath, bool saveAsStl) const;
 
 private:
     void scanDirectory();
     void updateProcessedCount();
     std::string alignmentJsonPath(const std::string& relPath) const;
-    std::string normalizedStlPath(const std::string& relPath) const;
 
     std::string m_inputDir;
     std::string m_outputDir;

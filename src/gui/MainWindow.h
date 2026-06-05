@@ -10,13 +10,14 @@
 #include "ToothSegmentation.h"
 #include "LandmarkPlaneFitter.h"
 #include "CoordinateNormalizer.h"
-#include "STLWriter.h"
+#include "MeshIO.h"
 
 #include <QMainWindow>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QLabel>
 #include <QProgressBar>
+#include <QCheckBox>
 
 #include <array>
 #include <memory>
@@ -59,6 +60,7 @@ private:
     QPushButton* m_startBtn;
     QLabel* m_progressLabel;
     QProgressBar* m_progressBar;
+    QCheckBox* m_saveAsStlCheck;
 
     MeshViewWidget* m_meshView;
     AlignmentWidget* m_alignWidget;

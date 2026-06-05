@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include "AlignmentSession.h"
-#include "STLReader.h"
-#include "STLWriter.h"
+#include "MeshIO.h"
 
 #include <algorithm>
 #include <chrono>
@@ -192,7 +191,7 @@ void Session::scanDirectory()
 
         std::string ext = entry.path().extension().string();
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-        if (ext != ".stl")
+        if (!MeshIO::isSupportedMeshFile(entry.path().string()))
             continue;
 
         // Store relative path
@@ -226,16 +225,20 @@ std::string Session::alignmentJsonPath(const std::string& relPath) const
         if (c == '/' || c == '\\')
             c = '_';
     }
-    // Remove .stl extension
-    if (flat.size() > 4 && flat.substr(flat.size() - 4) == ".stl")
-        flat = flat.substr(0, flat.size() - 4);
+    // Remove mesh extension
+    std::filesystem::path flatPath(flat);
+    flatPath.replace_extension();
+    flat = flatPath.string();
 
     return m_outputDir + "/alignments/" + flat + ".json";
 }
 
-std::string Session::normalizedStlPath(const std::string& relPath) const
+std::string Session::normalizedOutputPath(const std::string& relPath, bool saveAsStl) const
 {
-    return m_outputDir + "/normalized/" + relPath;
+    std::filesystem::path rel(relPath);
+    if (saveAsStl)
+        rel.replace_extension(".stl");
+    return (std::filesystem::path(m_outputDir) / "normalized" / rel).string();
 }
 
 std::shared_ptr<ScanData> Session::loadNextUnprocessed(std::string& errorMsg)
@@ -246,7 +249,7 @@ std::shared_ptr<ScanData> Session::loadNextUnprocessed(std::string& errorMsg)
         if (!hasAlignment(relPath)) {
             m_currentRelPath = relPath;
             m_currentAbsPath = m_inputDir + "/" + relPath;
-            return STLReader::read(m_currentAbsPath, errorMsg);
+            return MeshIO::read(m_currentAbsPath, errorMsg);
         }
         ++m_currentIndex;
     }
@@ -257,7 +260,7 @@ std::shared_ptr<ScanData> Session::loadNextUnprocessed(std::string& errorMsg)
     return nullptr;
 }
 
-bool Session::saveAlignment(const AlignmentRecord& record, std::string& errorMsg)
+bool Session::saveAlignment(const AlignmentRecord& record, bool saveAsStl, std::string& errorMsg)
 {
     // Write JSON
     std::string jsonPath = alignmentJsonPath(m_currentRelPath);
@@ -265,13 +268,13 @@ bool Session::saveAlignment(const AlignmentRecord& record, std::string& errorMsg
         return false;
 
     // Write normalized STL
-    auto scan = STLReader::read(m_currentAbsPath, errorMsg);
+    auto scan = MeshIO::read(m_currentAbsPath, errorMsg);
     if (!scan)
         return false;
 
     Eigen::Matrix4d transform = CoordinateNormalizer::arrayToMatrix(record.transform4x4);
-    std::string stlPath = normalizedStlPath(m_currentRelPath);
-    if (!STLWriter::writeTransformed(*scan, transform, stlPath, errorMsg))
+    std::string outPath = normalizedOutputPath(m_currentRelPath, saveAsStl);
+    if (!MeshIO::writeTransformed(*scan, transform, outPath, saveAsStl, errorMsg))
         return false;
 
     // Move to next

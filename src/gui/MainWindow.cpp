@@ -16,6 +16,8 @@
 #include <QDesktopServices>
 #include <QUrl>
 
+#include <filesystem>
+
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
 {
@@ -28,6 +30,7 @@ void MainWindow::loadSettings()
     QSettings settings("DentScan", "DentScanAlign");
     m_inputDirEdit->setText(settings.value("inputDir").toString());
     m_outputDirEdit->setText(settings.value("outputDir").toString());
+    m_saveAsStlCheck->setChecked(settings.value("saveAsStl", false).toBool());
 }
 
 void MainWindow::saveSettings()
@@ -35,6 +38,7 @@ void MainWindow::saveSettings()
     QSettings settings("DentScan", "DentScanAlign");
     settings.setValue("inputDir", m_inputDirEdit->text());
     settings.setValue("outputDir", m_outputDirEdit->text());
+    settings.setValue("saveAsStl", m_saveAsStlCheck->isChecked());
 }
 
 void MainWindow::setupUI()
@@ -61,7 +65,7 @@ void MainWindow::setupUI()
     auto* inputLayout = new QHBoxLayout();
     inputLayout->addWidget(new QLabel("Input:"));
     m_inputDirEdit = new QLineEdit();
-    m_inputDirEdit->setPlaceholderText("Select directory containing STL files...");
+    m_inputDirEdit->setPlaceholderText("Select directory containing STL, PLY, or OBJ files...");
     inputLayout->addWidget(m_inputDirEdit);
     m_browseInputBtn = new QPushButton("Browse...");
     inputLayout->addWidget(m_browseInputBtn);
@@ -77,6 +81,10 @@ void MainWindow::setupUI()
     dirLayout->addLayout(outputLayout);
 
     auto* startLayout = new QHBoxLayout();
+    m_saveAsStlCheck = new QCheckBox("Save as STL");
+    m_saveAsStlCheck->setToolTip("When checked, all transformed scans are exported as STL. When unchecked, STL/PLY/OBJ files keep their input format.");
+    startLayout->addWidget(m_saveAsStlCheck);
+
     m_startBtn = new QPushButton("Start Processing");
     startLayout->addWidget(m_startBtn);
     startLayout->addStretch();
@@ -113,6 +121,7 @@ void MainWindow::setupUI()
     connect(m_browseInputBtn, &QPushButton::clicked, this, &MainWindow::onBrowseInput);
     connect(m_browseOutputBtn, &QPushButton::clicked, this, &MainWindow::onBrowseOutput);
     connect(m_startBtn, &QPushButton::clicked, this, &MainWindow::onStartProcessing);
+    connect(m_saveAsStlCheck, &QCheckBox::toggled, this, [this](bool) { saveSettings(); });
 
     connect(m_meshView, &MeshViewWidget::pointPicked, this, &MainWindow::onPointPicked);
 
@@ -164,7 +173,7 @@ void MainWindow::onStartProcessing()
     }
 
     if (m_session.totalScanCount() == 0) {
-        QMessageBox::information(this, "No Scans", "No STL files found in the input directory.");
+        QMessageBox::information(this, "No Scans", "No STL, PLY, or OBJ files found in the input directory.");
         return;
     }
 
@@ -428,20 +437,24 @@ void MainWindow::onSaveAndNext()
         [&]() {
             std::string flat = record.sourceFile;
             for (char& c : flat) if (c == '/' || c == '\\') c = '_';
-            if (flat.size() > 4 && flat.substr(flat.size() - 4) == ".stl")
-                flat = flat.substr(0, flat.size() - 4);
+            std::filesystem::path flatPath(flat);
+            flatPath.replace_extension();
+            flat = flatPath.string();
             return flat + ".json";
         }();
-    std::string stlPath = m_session.outputDirectory() + "/normalized/" + record.sourceFile;
+    const bool saveAsStl = m_saveAsStlCheck->isChecked();
+    std::string outputPath = m_session.normalizedOutputPath(record.sourceFile, saveAsStl);
     std::shared_ptr<ScanData> scanToSave = m_currentScan;
     Eigen::Matrix4d transform = m_normResult.transform;
 
     // Run save in background
-    QtConcurrent::run([record, jsonPath, stlPath, scanToSave, transform]() {
-        std::string errorMsg;
-        AlignmentSession::writeJson(record, jsonPath, errorMsg);
-        STLWriter::writeTransformed(*scanToSave, transform, stlPath, errorMsg);
-    });
+    [[maybe_unused]] auto future = QtConcurrent::run(
+        [record, jsonPath, outputPath, scanToSave, transform, saveAsStl]() {
+            std::string errorMsg;
+            AlignmentSession::writeJson(record, jsonPath, errorMsg);
+            MeshIO::writeTransformed(*scanToSave, transform, outputPath, saveAsStl, errorMsg);
+        }
+    );
 
     // Update session state and load next immediately
     m_session.markCurrentAsProcessed();  // Increment processed count for progress bar
