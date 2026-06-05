@@ -6,14 +6,17 @@ Author: Prof. Dr. Karl-Heinz Kunzelmann ([www.kunzelmann.de](https://www.kunzelm
 
 ## Overview
 
-DentScanAlign is a standalone Qt/VTK application for interactive pre-alignment of dental intraoral STL scans. It normalizes arbitrary scanner coordinate systems to a standardized anatomical orientation, preparing scans for batch ICP registration in DentScanComparePro.
+DentScanAlign is a standalone Qt/VTK application for interactive pre-alignment of dental intraoral STL scans. It normalizes arbitrary scanner coordinate systems to a standardized anatomical orientation, preparing scans for batch ICP registration in DentScanComparePro. 
+
+<img src="images/1.png" width="800">
 
 ### What It Does
 
-- Loads STL files from intraoral scanners
+- Loads STL, PLY and OBJ files from intraoral scanners
 - Allows interactive placement of 3 anatomical landmarks
 - Computes a transformation matrix to normalize the coordinate system
-- Exports aligned STL files and JSON metadata
+- Exports aligned files and JSON metadata
+- Can convert PLY and OBJ to STL
 
 ### Target Coordinate System
 

@@ -24,4 +24,9 @@ qrc_*.cpp
 Thumbs.db
 
 # Temporary/generated images
-images/
+
+docs/INITIAL-PROMPT.md
+docs/implementation-plan.md
+images/*.mkv
+
+
