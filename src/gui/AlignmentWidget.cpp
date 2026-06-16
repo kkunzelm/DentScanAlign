@@ -12,6 +12,20 @@ AlignmentWidget::AlignmentWidget(QWidget* parent)
 {
     auto* mainLayout = new QVBoxLayout(this);
 
+    // Jaw type selection
+    auto* jawGroup = new QGroupBox("Jaw type");
+    auto* jawLayout = new QHBoxLayout(jawGroup);
+    m_lowerJawRadio = new QRadioButton("Lower jaw");
+    m_upperJawRadio = new QRadioButton("Upper jaw");
+    m_lowerJawRadio->setChecked(true);
+    m_jawButtonGroup = new QButtonGroup(this);
+    m_jawButtonGroup->addButton(m_lowerJawRadio);
+    m_jawButtonGroup->addButton(m_upperJawRadio);
+    jawLayout->addWidget(m_lowerJawRadio);
+    jawLayout->addWidget(m_upperJawRadio);
+    jawLayout->addStretch();
+    mainLayout->addWidget(jawGroup);
+
     // Landmark indicators
     auto* landmarkGroup = new QGroupBox("Landmarks (click clockwise from midline)");
     auto* landmarkLayout = new QHBoxLayout(landmarkGroup);
@@ -114,4 +128,10 @@ void AlignmentWidget::setStatus(const QString& msg)
 void AlignmentWidget::focusSaveButton()
 {
     m_saveBtn->setFocus();
+}
+
+CoordinateNormalizer::JawType AlignmentWidget::jawType() const
+{
+    return m_upperJawRadio->isChecked() ? CoordinateNormalizer::JawType::Upper
+                                        : CoordinateNormalizer::JawType::Lower;
 }

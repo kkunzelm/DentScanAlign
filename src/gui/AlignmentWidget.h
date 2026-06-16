@@ -3,10 +3,14 @@
 
 #pragma once
 
+#include "CoordinateNormalizer.h"
+
 #include <QWidget>
 #include <QPushButton>
 #include <QLabel>
 #include <QCheckBox>
+#include <QRadioButton>
+#include <QButtonGroup>
 #include <array>
 
 // Widget containing alignment controls: landmark indicators, action buttons, preview toggle.
@@ -27,6 +31,9 @@ public:
     // Get/set preview checkbox state
     bool isPreviewChecked() const;
     void setPreviewChecked(bool checked);
+
+    // Jaw type selection
+    CoordinateNormalizer::JawType jawType() const;
 
     // Set status message
     void setStatus(const QString& msg);
@@ -49,4 +56,7 @@ private:
     QPushButton* m_skipBtn;
     QPushButton* m_saveBtn;
     QLabel* m_statusLabel;
+    QRadioButton* m_lowerJawRadio;
+    QRadioButton* m_upperJawRadio;
+    QButtonGroup* m_jawButtonGroup;
 };

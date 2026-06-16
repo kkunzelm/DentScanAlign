@@ -20,14 +20,23 @@ DentScanAlign is a standalone Qt/VTK application for interactive pre-alignment o
 
 ### Target Coordinate System
 
-After normalization, all scans share a consistent orientation:
+After normalization, all scans share a consistent right-handed orientation (no reflections applied):
 
 | Axis | Direction | Anatomical Meaning |
 |------|-----------|-------------------|
-| X | Left (-) to Right (+) | Transversal |
-| Y | Posterior (-) to Anterior (+) | Sagittal (midline direction) |
-| Z | Apical (-) to Occlusal (+) | Vertical |
+| X | Left/right across the arch; X = 0 is the sagittal symmetry plane | Transversal |
+| Y | Anterior / posterior | Sagittal |
+| Z | Jaw-facing vertical axis | Vertical |
 | Origin | Mesh centroid | Center of scan |
+
+**Occlusal surface convention (selected before alignment):**
+
+| Jaw | Occlusal surface | Palate / root side |
+|-----|------------------|--------------------|
+| Lower jaw | +Z | −Z |
+| Upper jaw | −Z | +Z |
+
+The frame is always right-handed. For the upper jaw, a 180° rotation around the X-axis is applied after the standard fitting step, which flips Y and Z while preserving handedness.
 
 ## Prerequisites
 
@@ -87,14 +96,16 @@ make -j$(nproc)
 
 3. **Click "Start Processing"** to load the first scan
 
-4. **Place 3 landmarks** (click on the mesh):
+4. **Select the jaw type** in the right panel (Lower jaw or Upper jaw)
+
+5. **Place 3 landmarks** (click on the mesh):
    - Point 1: Anterior midline (e.g., central incisor contact point)
    - Point 2: Right side (clockwise from point 1 when viewing occlusally)
    - Point 3: Left side (clockwise from point 2)
 
-5. **Review** the automatically computed preview
+6. **Review** the automatically computed preview
 
-6. **Click "Save & Next"** to save and proceed to the next scan
+7. **Click "Save & Next"** to save and proceed to the next scan
 
 ### Keyboard Shortcuts
 
@@ -117,6 +128,7 @@ output_directory/
 
 Each alignment JSON contains:
 - Source file path
+- Jaw type (`"lower"` or `"upper"`)
 - Landmark positions
 - Fitted plane parameters
 - Computed axes (X, Y, Z)

@@ -536,7 +536,8 @@ void MainWindow::onComputeTransform()
     }
 
     // Compute normalization transform
-    m_normResult = CoordinateNormalizer::computeTransform(m_currentScan->mesh, m_planeResult);
+    m_normResult = CoordinateNormalizer::computeTransform(
+        m_currentScan->mesh, m_planeResult, m_alignWidget->jawType());
 
     if (!m_normResult.valid) {
         QMessageBox::warning(this, "Computation Failed",
@@ -593,6 +594,7 @@ void MainWindow::onSaveAndNext()
     // Build alignment record
     AlignmentSession::AlignmentRecord record;
     record.sourceFile = m_singleFileMode ? m_singleInputPath : m_session.currentScanRelativePath();
+    record.jawType = m_alignWidget->jawType();
 
     // Landmarks
     record.midline.seed = m_landmarks[0].seedPoint;

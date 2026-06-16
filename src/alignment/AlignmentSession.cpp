@@ -318,6 +318,7 @@ bool writeJson(const AlignmentRecord& record, const std::string& path,
 
     file << "{\n";
     file << "  \"source_file\": \"" << escapeJson(record.sourceFile) << "\",\n";
+    file << "  \"jaw_type\": \"" << (record.jawType == CoordinateNormalizer::JawType::Upper ? "upper" : "lower") << "\",\n";
     file << "  \"landmarks\": {\n";
     file << "    \"midline\": {\"seed\": " << toJsonArray3(record.midline.seed)
          << ", \"vertex_count\": " << record.midline.vertexCount << "},\n";
@@ -358,6 +359,10 @@ bool readJson(const std::string& path, AlignmentRecord& record, std::string& err
 
     record.sourceFile = extractJsonString(json, "source_file");
     record.timestamp = extractJsonString(json, "timestamp");
+
+    std::string jawTypeStr = extractJsonString(json, "jaw_type");
+    record.jawType = (jawTypeStr == "upper") ? CoordinateNormalizer::JawType::Upper
+                                              : CoordinateNormalizer::JawType::Lower;
 
     // Find landmarks section
     auto landmarksPos = json.find("\"landmarks\"");

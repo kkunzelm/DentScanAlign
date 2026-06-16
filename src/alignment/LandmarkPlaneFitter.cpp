@@ -79,14 +79,15 @@ PlaneResult fitPlane(
 
     // Z-axis orientation from clockwise convention:
     // If points are clicked clockwise when viewed from above (occlusal),
-    // then (P2-P1) × (P3-P1) points DOWN (into mouth).
-    // Align fitted normal with clockwise cross product direction.
+    // then (P2-P1) × (P3-P1) points INTO the surface (toward apical).
+    // We want Z pointing OUT of the occlusal surface, so we anti-align:
+    // flip normal to point OPPOSITE to the clockwise cross product.
     Eigen::Vector3d v1 = p2Centroid - p1Centroid;
     Eigen::Vector3d v2 = p3Centroid - p1Centroid;
     Eigen::Vector3d clockwiseNormal = v1.cross(v2);
 
-    // Align normal with clockwiseNormal direction
-    if (clockwiseNormal.dot(normal) < 0) {
+    // Anti-align: Z points away from the clockwise cross product (out of surface)
+    if (clockwiseNormal.dot(normal) > 0) {
         normal = -normal;
     }
 

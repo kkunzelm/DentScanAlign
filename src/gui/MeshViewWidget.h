@@ -12,7 +12,7 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkGenericOpenGLRenderWindow.h>
-#include <Eigen/Core>
+#include <Eigen/Dense>
 #include <QPoint>
 #include <array>
 #include <memory>

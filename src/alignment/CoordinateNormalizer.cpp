@@ -23,7 +23,8 @@ Eigen::Vector3d computeMeshCentroid(const SurfaceMesh& mesh)
 
 NormalizationResult computeTransform(
     const SurfaceMesh& mesh,
-    const LandmarkPlaneFitter::PlaneResult& planeResult)
+    const LandmarkPlaneFitter::PlaneResult& planeResult,
+    JawType jawType)
 {
     NormalizationResult result;
 
@@ -52,6 +53,33 @@ NormalizationResult computeTransform(
     result.transform = Eigen::Matrix4d::Identity();
     result.transform.block<3,3>(0,0) = R;
     result.transform.block<3,1>(0,3) = t;
+
+    // Apply jaw-type correction to reach the canonical frame (right-handed, det = +1).
+    //
+    // The base transform (from LandmarkPlaneFitter) delivers:
+    //   Z = out of occlusal surface  (+Z for both jaws as scanned)
+    //   Y = toward anterior (P1)
+    //
+    // Canonical target:
+    //   Lower jaw  – Z = occlusal (+Z),  Y = posterior (+Y toward molars)
+    //   Upper jaw  – Z = palate/root (+Z, occlusal at -Z),  Y = posterior
+    //
+    // Lower jaw: 180° around Z  → flips X and Y, keeps Z.
+    //   Result: Y = posterior ✓, Z = occlusal ✓
+    //
+    // Upper jaw: 180° around X  → flips Y and Z.
+    //   Result: Y = posterior ✓, Z = palate/root ✓ (occlusal at -Z)
+    if (jawType == JawType::Lower) {
+        Eigen::Matrix4d Rz180 = Eigen::Matrix4d::Identity();
+        Rz180(0, 0) = -1.0;
+        Rz180(1, 1) = -1.0;
+        result.transform = Rz180 * result.transform;
+    } else {
+        Eigen::Matrix4d Rx180 = Eigen::Matrix4d::Identity();
+        Rx180(1, 1) = -1.0;
+        Rx180(2, 2) = -1.0;
+        result.transform = Rx180 * result.transform;
+    }
 
     result.valid = true;
     return result;

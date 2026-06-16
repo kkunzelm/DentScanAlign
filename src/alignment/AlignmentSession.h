@@ -26,6 +26,9 @@ struct LandmarkInfo {
 struct AlignmentRecord {
     std::string sourceFile;                 // Relative path from input directory
 
+    // Jaw type
+    CoordinateNormalizer::JawType jawType = CoordinateNormalizer::JawType::Lower;
+
     // Landmarks
     LandmarkInfo midline;
     LandmarkInfo right;

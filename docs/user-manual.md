@@ -8,13 +8,14 @@
 
 When comparing intraoral scans from different scanners or scanning sessions, each scanner produces mesh files in its own arbitrary coordinate system. One scanner might place the occlusal surface facing up, another facing sideways. This makes direct comparison impossible.
 
-**DentScanAlign solves this problem** by transforming all scans into a standardized anatomical coordinate system. After normalization:
+**DentScanAlign solves this problem** by transforming all scans into a standardized anatomical coordinate system. After normalization, all scans share a consistent right-handed coordinate frame:
 
-- All scans have the same orientation
-- The occlusal surface faces upward (positive Z)
-- The anterior direction points forward (positive Y)
-- The right side points right (positive X)
+- The right side of the arch points in the positive X direction; X = 0 is the sagittal symmetry plane
 - The mesh is centered at the origin
+- For **lower jaw** scans: the occlusal surface faces **+Z**
+- For **upper jaw** scans: the occlusal surface faces **−Z**; the palate/root side faces **+Z**
+
+This jaw-aware convention ensures that upper and lower jaw scans can be compared or registered consistently without manual flipping.
 
 This standardization is essential before:
 - ICP (Iterative Closest Point) registration
@@ -90,7 +91,7 @@ The main window appears with:
 - A **Single file processing** area for one manually selected scan
 - A shared **Save as STL** checkbox
 - A 3D mesh viewer in the center
-- Landmark controls on the right
+- Alignment controls on the right, including **jaw type selection** and landmark indicators
 - A progress/status indicator below the file selection areas
 
 ## Step-by-Step Workflow
@@ -131,7 +132,16 @@ Click **"Start Processing"**. The application will:
 
 **Tip:** Rotate the mesh so you can see the occlusal surface clearly before placing landmarks.
 
-### Step 4: Place Three Landmarks
+### Step 4: Select the Jaw Type
+
+Before placing landmarks, select whether the current scan is a **lower jaw** or **upper jaw** using the radio buttons at the top of the right panel.
+
+- **Lower jaw** (default): the occlusal surface will be oriented toward +Z in the output
+- **Upper jaw**: the occlusal surface will be oriented toward −Z; the palate/root side toward +Z
+
+This selection can be changed at any time before clicking "Save & Next". If you are processing a batch that contains both jaw types, remember to update this before placing landmarks on each scan.
+
+### Step 5: Place Three Landmarks
 
 You need to place exactly 3 points that define the anatomical orientation. The points should be placed **clockwise** when viewing the occlusal surface from above.
 
@@ -142,7 +152,7 @@ Click on a point at the **anterior midline** of the dental arch. Good choices:
 - Center of the incisal edge of a central incisor
 - Any clearly identifiable midline structure
 
-**Why this point?** It defines the anterior (Y+) direction.
+**Why this point?** It defines the anterior direction.
 
 #### Point 2: Right Side
 
@@ -158,7 +168,7 @@ Click on a point on the **left side** of the arch. This should be roughly symmet
 
 **Why this point?** The plane through all three points becomes the occlusal plane (XY plane).
 
-### Step 5: Review the Preview
+### Step 6: Review the Preview
 
 After placing the third point, the application automatically:
 1. Grows small regions around each landmark
@@ -167,31 +177,32 @@ After placing the third point, the application automatically:
 4. Shows a preview of the normalized mesh
 
 The preview shows the mesh in the standardized orientation:
-- Looking down at the occlusal surface
-- Anterior pointing up
+- Occlusal surface toward the viewer (for lower jaw: +Z forward; for upper jaw: −Z forward)
+- Anterior pointing up in the view
 - Right side on the right
 
 **If the preview looks wrong:**
+- Verify that the correct jaw type (lower/upper) is selected
 - Click **"Undo Last"** to remove the last landmark
 - Click **"Reset"** to clear all landmarks and start over
 - Re-place the landmarks more carefully
 
-### Step 6: Save and Continue
+### Step 7: Save and Continue
 
 If the preview looks correct, click **"Save & Next"**. The application:
-1. Saves the transformation to a JSON file
+1. Saves the transformation (including jaw type) to a JSON file
 2. Writes the normalized mesh file in the selected output format
 3. Automatically loads the next unprocessed scan
 
 **Keyboard shortcut:** After placing 3 landmarks, the "Save & Next" button is focused. Press **Enter** to save quickly.
 
-### Step 7: Skip Problematic Scans
+### Step 8: Skip Problematic Scans
 
 If a scan is corrupted, has artifacts, or cannot be properly aligned:
 - Click **"Skip"** to move to the next scan without saving
 - The skipped scan will appear again if you restart processing
 
-### Step 8: Completion
+### Step 9: Completion
 
 When all scans are processed, a message appears showing the total count. The progress bar shows 100%.
 
@@ -276,6 +287,7 @@ Each JSON file contains:
 ```json
 {
   "source_file": "Scanner_A/specimen_01/scan_1.stl",
+  "jaw_type": "lower",
   "landmarks": {
     "midline": {"seed": [x, y, z], "vertex_count": 150},
     "right": {"seed": [x, y, z], "vertex_count": 148},
@@ -334,9 +346,10 @@ Each JSON file contains:
 
 After processing a batch or an important single file:
 1. Open the normalized mesh files in a 3D viewer
-2. Verify they all have consistent orientation
-3. Check that the occlusal surface faces upward
-4. Confirm anterior points forward
+2. Verify they all have consistent orientation within the same jaw type
+3. For lower jaw scans: confirm the occlusal surface faces +Z (upward)
+4. For upper jaw scans: confirm the occlusal surface faces −Z (downward) and the palate faces +Z
+5. Confirm the right side of the arch is in the positive X direction
 
 If inconsistencies are found:
 1. Delete the problematic JSON and normalized mesh files
@@ -389,8 +402,9 @@ Choose a different output filename. DentScanAlign does not overwrite the origina
 
 ### Transform preview looks wrong
 
-- Verify landmarks are placed clockwise when viewing occlusally
-- Point 1 should be anterior, Points 2-3 should be posterior
+- Confirm the correct jaw type (Lower/Upper) is selected before placing landmarks
+- Verify landmarks are placed clockwise when viewing the occlusal surface from above
+- Point 1 should be anterior (midline), Points 2-3 should be on the right and left posterior sides
 - Use "Reset" and try again with clearer landmark positions
 
 ## Frequently Asked Questions
@@ -413,7 +427,11 @@ A: DentScanAlign is designed for interactive batch processing. For very large st
 
 **Q: Can I use this for mandibular (lower) arches?**
 
-A: Yes. The same landmark convention applies. Place Point 1 at the anterior midline, Points 2-3 on right and left sides, clockwise when viewing from above (looking down at the occlusal surface).
+A: Yes. Select **"Lower jaw"** in the jaw type panel (it is the default). Place Point 1 at the anterior midline, Points 2-3 on the right and left sides, clockwise when viewing the occlusal surface from above. The output will have the occlusal surface facing +Z.
+
+**Q: Can I use this for maxillary (upper) arches?**
+
+A: Yes. Select **"Upper jaw"** in the jaw type panel before placing landmarks. The landmark picking procedure is the same as for lower jaw scans. After alignment, the occlusal surface faces −Z and the palate/root side faces +Z, matching the canonical convention for upper jaw scans.
 
 **Q: What coordinate units does the output use?**
 

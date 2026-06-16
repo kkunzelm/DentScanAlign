@@ -10,6 +10,12 @@
 
 namespace CoordinateNormalizer {
 
+// Which jaw is being aligned — determines the Z-axis convention of the output.
+enum class JawType {
+    Lower,  // Occlusal surface → +Z
+    Upper   // Occlusal surface → -Z; palate/root → +Z
+};
+
 struct NormalizationResult {
     Eigen::Matrix4d transform;       // Full 4x4 transformation matrix (row-major)
     Eigen::Vector3d meshCentroid;    // Centroid of entire mesh (origin for normalized system)
@@ -21,13 +27,19 @@ struct NormalizationResult {
 //   1. Translates mesh so its centroid is at origin
 //   2. Rotates so X/Y/Z axes align with the anatomical directions
 //
-// Target coordinate system:
-//   X: Left (-) to Right (+)
-//   Y: Posterior (-) to Anterior (+)
-//   Z: Apical (-) to Occlusal (+)
+// Canonical coordinate system (right-handed, no reflections):
+//   X: Left/right across the arch; X=0 is the sagittal symmetry plane
+//   Y: Anterior/posterior
+//   Z: Jaw-facing vertical axis
+//      Lower jaw: occlusal surface → +Z
+//      Upper jaw: occlusal surface → -Z; palate/root → +Z
+//
+// For JawType::Upper a 180° rotation around X is applied after the base
+// transform, which flips Y and Z while preserving right-handedness.
 NormalizationResult computeTransform(
     const SurfaceMesh& mesh,
-    const LandmarkPlaneFitter::PlaneResult& planeResult);
+    const LandmarkPlaneFitter::PlaneResult& planeResult,
+    JawType jawType = JawType::Lower);
 
 // Compute the centroid of the entire mesh
 Eigen::Vector3d computeMeshCentroid(const SurfaceMesh& mesh);

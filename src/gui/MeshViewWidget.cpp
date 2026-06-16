@@ -66,7 +66,9 @@ std::vector<double> computeMeanCurvature(const SurfaceMesh& mesh)
                                                   CGAL::to_double(fp.y()),
                                                   CGAL::to_double(fp.z()));
                     }
-                    Eigen::Vector3d fn = (fv[1] - fv[0]).cross(fv[2] - fv[0]);
+                    Eigen::Vector3d a = fv[1] - fv[0];
+                    Eigen::Vector3d b = fv[2] - fv[0];
+                    Eigen::Vector3d fn = a.cross(b);
                     double len = fn.norm();
                     if (len > 1e-12) normal += fn / len;
                 }
